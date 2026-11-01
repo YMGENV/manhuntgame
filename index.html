@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>ManHunt - 3D City</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0e14;color:#eaf0f7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#danger{position:fixed;inset:0;pointer-events:none}
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;text-shadow:0 1px 4px #000;font-weight:700}
+#timer{font-size:26px;font-variant-numeric:tabular-nums}
+#info{text-align:right;font-size:13px;line-height:1.5;color:#cfd8e6;font-weight:600}
+#roleTxt.runner{color:#4fd1ff}
+#roleTxt.hunter{color:#ff4d5e}
+#radar{position:fixed;top:calc(env(safe-area-inset-top,0px) + 70px);right:14px;width:120px;height:120px;border-radius:50%;background:rgba(8,14,24,.55);border:1px solid rgba(255,255,255,.2);pointer-events:none}
+#stamWrap{position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:170px;height:8px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;pointer-events:none}
+#stam{height:100%;width:100%;background:#4fd1ff}
+#keyHint{position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 32px);font-size:12px;color:#aab6c5;pointer-events:none}
+#banner{position:fixed;left:0;right:0;top:26%;text-align:center;font-size:28px;font-weight:800;text-shadow:0 2px 10px #000;pointer-events:none}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%);background:rgba(10,14,22,.85);border:1px solid rgba(255,255,255,.15);padding:9px 16px;border-radius:12px;font-size:14px;font-weight:600;pointer-events:none;max-width:86vw;text-align:center}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,14,.78);z-index:10;overflow:auto}
+.card{width:100%;max-width:380px;background:rgba(20,26,36,.96);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.card h1{margin:0 0 6px;font-size:32px;letter-spacing:3px;color:#ff4d5e}
+.card h2{margin:0 0 6px;font-size:24px;color:#ff4d5e}
+.card p{margin:8px 0;color:#aab6c5;line-height:1.5;font-size:14px}
+.card .err{color:#ff8a96;min-height:20px}
+.card label.chk{display:flex;gap:10px;align-items:center;justify-content:center;margin:12px 0 4px;font-size:13px;color:#dfe7f2;cursor:pointer}
+.card input[type=checkbox]{width:18px;height:18px}
+input.txt{font:inherit;width:100%;padding:13px;margin-top:8px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0e141e;color:#fff;text-align:center;-webkit-user-select:text;user-select:text;outline:none}
+input.txt:focus{border-color:#4fd1ff}
+#codeIn{letter-spacing:6px;text-transform:uppercase;font-weight:700}
+button.btn{font:inherit;font-weight:700;font-size:16px;width:100%;margin-top:10px;padding:14px;border:0;border-radius:12px;background:#ff4d5e;color:#fff;cursor:pointer}
+button.btn.alt{background:#2b3547}
+button.btn.blue{background:#2a9fd6}
+button.btn:disabled{opacity:.45;cursor:default}
+.sep{margin:16px 0 4px;font-size:12px;color:#7d8a9c;letter-spacing:2px}
+#roomCode{font-size:40px;font-weight:800;letter-spacing:8px;margin:4px 0 0;color:#fff}
+#plist{margin:12px 0;text-align:left}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;margin-top:6px;background:#0e141e;border-radius:10px;font-size:14px}
+.badge{font-size:11px;font-weight:800;letter-spacing:1px;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+.badge.runner{background:rgba(79,209,255,.2);color:#4fd1ff}
+.badge.hunter{background:rgba(255,77,94,.2);color:#ff6b7a}
+.roles{display:flex;gap:10px}
+.roles button{flex:1;font:inherit;font-weight:700;padding:12px;border-radius:12px;border:2px solid transparent;background:#2b3547;color:#fff;cursor:pointer}
+.roles button.on.runner{border-color:#4fd1ff;background:rgba(79,209,255,.18)}
+.roles button.on.hunter{border-color:#ff4d5e;background:rgba(255,77,94,.18)}
+.roles button:disabled{opacity:.5}
+.hidden{display:none !important}
+#joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.22);display:none;pointer-events:none;z-index:5}
+#knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.4)}
+#sprint{position:fixed;right:22px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);width:84px;height:84px;border-radius:50%;border:2px solid rgba(79,209,255,.7);background:rgba(79,209,255,.22);color:#fff;font:700 13px system-ui,sans-serif;display:none;z-index:6;padding:0}
+#sprint.on{background:rgba(79,209,255,.6)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="danger"></div>
+
+<div class="hud">
+  <div id="timer">00:00</div>
+  <div id="info"><span id="roleTxt"></span><br><span id="countTxt"></span><br><span id="gpsTag"></span></div>
+</div>
+<canvas id="radar" width="240" height="240"></canvas>
+<div id="stamWrap"><div id="stam"></div></div>
+<div id="keyHint">Shift: sprint</div>
+<div id="banner"></div>
+<div id="toast" class="hidden"></div>
+
+<div id="joy"><div id="knob"></div></div>
+<button id="sprint">SPRINT</button>
+
+<!-- HOME -->
+<div id="home" class="overlay">
+  <div class="card">
+    <h1>MANHUNT</h1>
+    <p>Runners vs hunters in a 3D city. Make a room, then play solo or invite friends.</p>
+    <input class="txt" id="nameIn" maxlength="12" placeholder="Your name" autocomplete="off">
+    <button class="btn" id="createBtn">Create room</button>
+    <div class="sep">OR JOIN A FRIEND</div>
+    <input class="txt" id="codeIn" maxlength="5" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+    <button class="btn blue" id="joinBtn">Join room</button>
+    <p class="err" id="homeMsg"></p>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby" class="overlay hidden">
+  <div class="card">
+    <p style="margin:0">ROOM CODE</p>
+    <div id="roomCode">-----</div>
+    <button class="btn alt" id="shareBtn" style="margin-top:8px;padding:10px;font-size:14px">Share invite link</button>
+    <div id="plist"></div>
+    <p style="margin:6px 0 4px">Pick your side</p>
+    <div class="roles">
+      <button id="roleRunner" class="runner">Runner</button>
+      <button id="roleHunter" class="hunter">Hunter</button>
+    </div>
+    <p id="roleHint" style="font-size:12px"></p>
+    <label class="chk"><input type="checkbox" id="gpsChk"> Real-world GPS mode (phone only, you walk the city)</label>
+    <button class="btn" id="startBtn">Start</button>
+    <p id="waitTxt" class="hidden">Waiting for the host to start...</p>
+    <p class="err" id="lobbyMsg"></p>
+    <button class="btn alt" id="leaveBtn">Leave room</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="over" class="overlay hidden">
+  <div class="card">
+    <h2 id="overTitle">GAME OVER</h2>
+    <p id="overText"></p>
+    <button class="btn" id="againBtn">Play again</button>
+    <button class="btn alt" id="leaveBtn2">Leave room</button>
+  </div>
+</div>
+
+<script>
+// If the CDN copy of PeerJS fails to load, try a second CDN
+function loadPeerFallback(){
+  var s=document.createElement('script');
+  s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+  document.head.appendChild(s);
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js" onerror="loadPeerFallback()"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const r1 = v => Math.round(v * 10) / 10;
+  const fmt = s => {
+    const t = Math.max(0, Math.floor(s));
+    return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+  };
+  const grnd = (a, b) => a + Math.random() * (b - a); // gameplay randomness
+  const PEER_OPTS = window.MANHUNT_PEER_OPTS || {};
+  const PREFIX = 'manhunt-ymgenv-';
+  const HEAD = 8;       // seconds hunters are held back at the start
+  const ROUND = 240;    // multiplayer round length (seconds)
+  const MAXP = 8;
+  const ROLE_COLOR = { runner: 0x4fd1ff, hunter: 0xff4d5e };
+
+  // City RNG is seeded so every device builds the identical city
+  let seed = 20261101;
+  const crng = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  const rr = (a, b) => a + (b - a) * crng();
+
+  // ---------- Renderer / scene ----------
+  const renderer = new THREE.WebGLRenderer({ canvas: $('c'), antialias: !isTouch });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = !isTouch;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+
+  const scene = new THREE.Scene();
+  const SKY = 0x111a2b;
+  scene.background = new THREE.Color(SKY);
+  scene.fog = new THREE.Fog(SKY, 140, 380);
+
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 900);
+
+  scene.add(new THREE.HemisphereLight(0xa8bddf, 0x1b2030, 0.95));
+  const sun = new THREE.DirectionalLight(0xffe0b0, 1.1);
+  sun.castShadow = !isTouch;
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -110, right: 110, top: 110, bottom: -110, far: 500 });
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.bias = -0.0008;
+  scene.add(sun, sun.target);
+
+  // ---------- Procedural city ----------
+  const colliders = [];
+  const world = new THREE.Group();
+  scene.add(world);
+
+  const N = 12, P = 44, BLOCK = 32;
+  const asphalt = new THREE.Mesh(
+    new THREE.PlaneGeometry(N * P + 200, N * P + 200),
+    new THREE.MeshLambertMaterial({ color: 0x242a35 })
+  );
+  asphalt.rotation.x = -Math.PI / 2;
+  asphalt.receiveShadow = !isTouch;
+  world.add(asphalt);
+
+  const palette = [0xd7dde6, 0x9aa7bb, 0xb98c6c, 0x7d95b3, 0xe0d2b0, 0x66768f, 0xaeb4c0, 0x8a7463];
+  const padGeo = new THREE.PlaneGeometry(BLOCK, BLOCK);
+  const padMat = new THREE.MeshLambertMaterial({ color: 0x4a5366 });
+  const parkMat = new THREE.MeshLambertMaterial({ color: 0x2e6b3f });
+  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5a4030 });
+  const leafMat = new THREE.MeshLambertMaterial({ color: 0x3e8a4a });
+
+  function makeWindowTex() {
+    const cv = document.createElement('canvas');
+    cv.width = 64; cv.height = 64;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, 64, 64);
+    for (let y = 6; y < 60; y += 16) {
+      for (let x = 6; x < 60; x += 16) {
+        g.fillStyle = crng() < 0.2 ? '#ffe29a' : '#3a4558';
+        g.fillRect(x, y, 8, 10);
+      }
+    }
+    const t = new THREE.CanvasTexture(cv);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  }
+  const windowTex = makeWindowTex();
+
+  function addBuilding(x, z, w, d) {
+    const h = rr(9, 62) * (crng() < 0.12 ? 1.9 : 1);
+    const tex = windowTex.clone();
+    tex.needsUpdate = true;
+    tex.repeat.set(Math.max(1, Math.round(w / 5)), Math.max(1, Math.round(h / 5)));
+    const mat = new THREE.MeshLambertMaterial({ color: palette[(crng() * palette.length) | 0], map: tex });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(x, h / 2, z);
+    m.castShadow = m.receiveShadow = !isTouch;
+    world.add(m);
+    colliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  }
+
+  function addTrees(cx, cz) {
+    for (let t = 0; t < 6; t++) {
+      const x = cx + rr(-13, 13), z = cz + rr(-13, 13);
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 3, 6), trunkMat);
+      trunk.position.set(x, 1.5, z);
+      const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.6, 5, 7), leafMat);
+      leaves.position.set(x, 5.5, z);
+      trunk.castShadow = leaves.castShadow = !isTouch;
+      world.add(trunk, leaves);
+      colliders.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5 });
+    }
+  }
+
+  for (let i = -N / 2; i < N / 2; i++) {
+    for (let j = -N / 2; j < N / 2; j++) {
+      const cx = (i + 0.5) * P, cz = (j + 0.5) * P;
+      const park = crng() < 0.14;
+      const pad = new THREE.Mesh(padGeo, park ? parkMat : padMat);
+      pad.rotation.x = -Math.PI / 2;
+      pad.position.set(cx, 0.05, cz);
+      pad.receiveShadow = !isTouch;
+      world.add(pad);
+      if (park) { addTrees(cx, cz); continue; }
+      if (crng() < 0.5) {
+        addBuilding(cx, cz, rr(12, 26), rr(12, 26));
+      } else {
+        addBuilding(cx - 8, cz, rr(8, 13), rr(12, 28));
+        addBuilding(cx + 8, cz, rr(8, 13), rr(12, 28));
+      }
+    }
+  }
+
+  // ---------- Collision ----------
+  function blockedCircle(x, z, r) {
+    for (const c of colliders) {
+      const cx = clamp(x, c.minX, c.maxX), cz = clamp(z, c.minZ, c.maxZ);
+      const dx = x - cx, dz = z - cz;
+      if (dx * dx + dz * dz < r * r) return true;
+    }
+    return false;
+  }
+
+  function resolve(e, r) {
+    for (let pass = 0; pass < 2; pass++) {
+      for (const c of colliders) {
+        const cx = clamp(e.x, c.minX, c.maxX), cz = clamp(e.z, c.minZ, c.maxZ);
+        const dx = e.x - cx, dz = e.z - cz, d2 = dx * dx + dz * dz;
+        if (d2 >= r * r) continue;
+        if (d2 > 1e-8) {
+          const d = Math.sqrt(d2), push = r - d;
+          e.x += dx / d * push;
+          e.z += dz / d * push;
+        } else {
+          const left = e.x - c.minX, right = c.maxX - e.x, back = e.z - c.minZ, front = c.maxZ - e.z;
+          const m = Math.min(left, right, back, front);
+          if (m === left) e.x = c.minX - r;
+          else if (m === right) e.x = c.maxX + r;
+          else if (m === back) e.z = c.minZ - r;
+          else e.z = c.maxZ + r;
+        }
+      }
+    }
+  }
+
+  function findFree(cx, cz, rmin, rmax) {
+    let x, z, t = 0;
+    do {
+      const a = Math.random() * Math.PI * 2, d = grnd(rmin, rmax);
+      x = clamp(cx + Math.cos(a) * d, -258, 258);
+      z = clamp(cz + Math.sin(a) * d, -258, 258);
+      t++;
+    } while (blockedCircle(x, z, 1.5) && t < 60);
+    return { x, z };
+  }
+
+  // ---------- Figures ----------
+  function makeLabel(text) {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 64;
+    const g = cv.getContext('2d');
+    g.font = '700 32px system-ui,sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineWidth = 6;
+    g.strokeStyle = 'rgba(0,0,0,.85)';
+    g.strokeText(text, 128, 32);
+    g.fillStyle = '#fff';
+    g.fillText(text, 128, 32);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true }));
+    spr.scale.set(4, 1, 1);
+    spr.position.y = 2.8;
+    return spr;
+  }
+
+  function makeFigure(color, name) {
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshLambertMaterial({ color });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.5, 10), bodyMat);
+    body.position.y = 0.95;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), new THREE.MeshLambertMaterial({ color: 0xf2d2b6 }));
+    head.position.y = 1.9;
+    const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.7, 20), ringMat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.06;
+    g.add(body, head, ring);
+    g.traverse(o => { if (o.isMesh) o.castShadow = !isTouch; });
+    g.userData.mats = [bodyMat, ringMat];
+    if (name) g.add(makeLabel(name));
+    return g;
+  }
+  const setFigColor = (g, color) => g.userData.mats.forEach(m => m.color.setHex(color));
+
+  // ---------- Game state ----------
+  const net = { peer: null, isHost: false, myId: null, code: '', conns: new Map(), hostConn: null };
+  const players = new Map(); // id -> {id,name,role,pref,x,z,ry,mesh}
+  let me = null;
+  let phase = 'home'; // home | lobby | playing | over
+  let elapsed = 0, nextSpawn = 22, stamina = 100;
+  let aiOn = false, solo = false, sendT = 0, bcastT = 0;
+  const ai = []; // host: {x,z,mesh,ang,wander}; client: {x,z,ry,mesh}
+  let camYaw = 0, camPitch = 0.45, camDist = 9;
+  const AVOID = [0, 0.5, -0.5, 1.1, -1.1, 1.7, -1.7, 2.5, -2.5, 3.14];
+
+  let bestTime = 0;
+  try { bestTime = parseFloat(localStorage.getItem('manhunt-best')) || 0; } catch (e) {}
+
+  // ---------- UI helpers ----------
+  const screens = ['home', 'lobby', 'over'];
+  function showScreen(id) {
+    for (const s of screens) $(s).classList.toggle('hidden', s !== id);
+  }
+  let toastTimer = 0;
+  function toast(text, ms = 3000) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
+  }
+  const cleanName = s => (s || '').replace(/[<>]/g, '').trim().slice(0, 12);
+  function getName() {
+    let n = cleanName($('nameIn').value) || 'Player' + ((Math.random() * 90 + 10) | 0);
+    try { localStorage.setItem('manhunt-name', n); } catch (e) {}
+    return n;
+  }
+
+  // ---------- Players / meshes ----------
+  function clearGame() {
+    for (const p of players.values()) { if (p.mesh) { scene.remove(p.mesh); p.mesh = null; } }
+    for (const a of ai) scene.remove(a.mesh);
+    ai.length = 0;
+    joy.x = joy.y = 0;
+    sprintHeld = false;
+    $('danger').style.boxShadow = 'none';
+    $('banner').textContent = '';
+  }
+
+  function setRole(p, role) {
+    p.role = role;
+    if (p.mesh) setFigColor(p.mesh, ROLE_COLOR[role]);
+    if (p === me && role === 'hunter') { stamina = 100; toast('You were caught. You are a hunter now!'); }
+  }
+
+  function beginGame(roster, ai_on, is_solo) {
+    clearGame();
+    aiOn = ai_on; solo = is_solo;
+    for (const e of roster) {
+      let p = players.get(e.id);
+      if (!p) { p = { id: e.id, name: e.name }; players.set(e.id, p); }
+      p.name = e.name; p.role = e.role; p.pref = e.role;
+      p.x = e.x; p.z = e.z; p.ry = 0;
+    }
+    me = players.get(net.myId);
+    for (const p of players.values()) {
+      p.mesh = makeFigure(ROLE_COLOR[p.role], p === me ? null : p.name);
+      p.mesh.position.set(p.x, 0, p.z);
+      scene.add(p.mesh);
+    }
+    stamina = 100; elapsed = 0; nextSpawn = 22; sendT = 0; bcastT = 0;
+    camYaw = 0;
+    gpsOn = $('gpsChk').checked;
+    gpsOrigin = null; gpsOK = false;
+    if (gpsOn && !gpsWatch) startGPS();
+    $('gpsTag').textContent = gpsOn ? 'GPS: waiting for fix...' : '';
+    phase = 'playing';
+    $('home').classList.add('hidden'); $('lobby').classList.add('hidden'); $('over').classList.add('hidden');
+    if (net.isHost && aiOn) { spawnAI(); spawnAI(); }
+  }
+
+  // ---------- Networking ----------
+  function genCode() {
+    const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let s = '';
+    for (let i = 0; i < 5; i++) s += a[(Math.random() * a.length) | 0];
+    return s;
+  }
+  function sendTo(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) {} }
+  function sendAll(msg) { for (const c of net.conns.values()) sendTo(c, msg); }
+
+  function resetNet() {
+    try { if (net.peer) net.peer.destroy(); } catch (e) {}
+    net.peer = null; net.isHost = false; net.myId = null; net.code = '';
+    net.conns.clear(); net.hostConn = null;
+  }
+
+  function leaveRoom(msg) {
+    resetNet();
+    clearGame();
+    players.clear();
+    me = null;
+    phase = 'home';
+    $('homeMsg').textContent = msg || '';
+    $('roleTxt').textContent = ''; $('countTxt').textContent = '';
+    showScreen('home');
+  }
+
+  function createRoom(tries) {
+    if (typeof Peer === 'undefined') { $('homeMsg').textContent = 'Could not load the network library. Check your connection.'; return; }
+    const name = getName();
+    $('homeMsg').textContent = 'Creating room...';
+    const code = genCode();
+    let peer;
+    try { peer = new Peer(PREFIX + code, PEER_OPTS); } catch (e) { $('homeMsg').textContent = 'Network error.'; return; }
+    peer.on('open', () => {
+      resetNet();
+      net.peer = peer; net.isHost = true; net.code = code; net.myId = 'host';
+      players.clear();
+      me = { id: 'host', name, role: 'runner', x: 0, z: 0, ry: 0 };
+      players.set('host', me);
+      phase = 'lobby';
+      $('homeMsg').textContent = '';
+      enterLobby();
+    });
+    peer.on('connection', onIncoming);
+    peer.on('error', err => {
+      if (err.type === 'unavailable-id' && (tries || 0) < 5) { peer.destroy(); createRoom((tries || 0) + 1); return; }
+      if (phase === 'home') { $('homeMsg').textContent = 'Could not create room (' + err.type + ').'; }
+      else if (phase !== 'home') toast('Network error: ' + err.type);
+    });
+    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+  }
+
+  function onIncoming(conn) {
+    conn.on('data', d => hostData(conn, d));
+    conn.on('close', () => hostDrop(conn.peer));
+    conn.on('error', () => hostDrop(conn.peer));
+  }
+
+  function hostData(conn, d) {
+    if (!d || typeof d !== 'object') return;
+    const id = conn.peer;
+    if (d.t === 'join') {
+      if (phase !== 'lobby') { sendTo(conn, { t: 'denied', why: 'A game is already in progress.' }); setTimeout(() => conn.close(), 500); return; }
+      if (players.size >= MAXP && !players.has(id)) { sendTo(conn, { t: 'denied', why: 'Room is full.' }); setTimeout(() => conn.close(), 500); return; }
+      net.conns.set(id, conn);
+      players.set(id, { id, name: cleanName(d.name) || 'Player', role: 'runner', x: 0, z: 0, ry: 0 });
+      broadcastLobby();
+    } else if (d.t === 'role') {
+      const p = players.get(id);
+      if (p && phase === 'lobby' && (d.role === 'runner' || d.role === 'hunter')) { p.role = d.role; broadcastLobby(); }
+    } else if (d.t === 'pos') {
+      const p = players.get(id);
+      if (p && phase === 'playing' && isFinite(d.x) && isFinite(d.z)) {
+        p.x = clamp(d.x, -262, 262); p.z = clamp(d.z, -262, 262);
+        p.ry = isFinite(d.ry) ? d.ry : 0;
+      }
+    }
+  }
+
+  function hostDrop(id) {
+    if (!players.has(id)) return;
+    const p = players.get(id);
+    if (p.mesh) scene.remove(p.mesh);
+    players.delete(id);
+    net.conns.delete(id);
+    if (phase === 'lobby') broadcastLobby();
+    else if (phase === 'playing') {
+      toast(p.name + ' left the game');
+      if (players.size === 1) {
+        // Everyone else left: carry on as a solo run
+        solo = true; aiOn = true;
+        if (me.role !== 'runner') setRole(me, 'runner');
+      }
+      checkRoundEnd();
+    }
+  }
+
+  function broadcastLobby() {
+    const list = [...players.values()].map(p => ({ id: p.id, name: p.name, role: p.role }));
+    sendAll({ t: 'lobby', list, code: net.code });
+    renderLobby();
+  }
+
+  function joinRoom(code) {
+    if (typeof Peer === 'undefined') { $('homeMsg').textContent = 'Could not load the network library. Check your connection.'; return; }
+    code = (code || '').toUpperCase().trim();
+    if (code.length !== 5) { $('homeMsg').textContent = 'Enter the 5-letter room code.'; return; }
+    const name = getName();
+    $('homeMsg').textContent = 'Connecting...';
+    let peer;
+    try { peer = new Peer(undefined, PEER_OPTS); } catch (e) { $('homeMsg').textContent = 'Network error.'; return; }
+    let settled = false;
+    const fail = msg => { if (settled) return; settled = true; try { peer.destroy(); } catch (e) {} $('homeMsg').textContent = msg; };
+    const timer = setTimeout(() => fail('Could not reach that room. Check the code and try again.'), 15000);
+    peer.on('open', id => {
+      const conn = peer.connect(PREFIX + code, { serialization: 'json', reliable: true });
+      conn.on('open', () => {
+        clearTimeout(timer);
+        settled = true;
+        resetNet();
+        net.peer = peer; net.myId = id; net.hostConn = conn; net.code = code;
+        sendTo(conn, { t: 'join', name });
+      });
+      conn.on('data', clientData);
+      conn.on('close', () => { if (net.hostConn === conn) leaveRoom('The host left the room.'); });
+      conn.on('error', () => { if (net.hostConn === conn) leaveRoom('Connection lost.'); });
+    });
+    peer.on('error', err => {
+      clearTimeout(timer);
+      if (err.type === 'peer-unavailable') fail('Room not found. Check the code.');
+      else if (!settled) fail('Connection failed (' + err.type + ').');
+      else toast('Network error: ' + err.type);
+    });
+  }
+
+  function clientData(m) {
+    if (!m || typeof m !== 'object') return;
+    if (m.t === 'lobby') {
+      clearGame();
+      players.clear();
+      for (const e of m.list) players.set(e.id, { id: e.id, name: e.name, role: e.role, x: 0, z: 0, ry: 0 });
+      me = players.get(net.myId);
+      net.code = m.code;
+      phase = 'lobby';
+      enterLobby();
+    } else if (m.t === 'denied') {
+      leaveRoom(m.why || 'Could not join.');
+    } else if (m.t === 'start') {
+      beginGame(m.roster, m.ai, m.solo);
+    } else if (m.t === 'state' && phase === 'playing') {
+      applyState(m);
+    } else if (m.t === 'toast') {
+      toast(m.text);
+    } else if (m.t === 'end') {
+      showOver(m.winner, m.time, m.solo);
+    }
+  }
+
+  function applyState(m) {
+    elapsed = m.time;
+    for (const a of m.p) {
+      const p = players.get(a[0]);
+      if (!p) continue;
+      if (p !== me) { p.x = a[1]; p.z = a[2]; p.ry = a[3]; }
+      if (a[4] !== p.role) setRole(p, a[4]);
+    }
+    while (ai.length < m.a.length) {
+      const mesh = makeFigure(ROLE_COLOR.hunter, null);
+      scene.add(mesh);
+      ai.push({ x: 0, z: 0, ry: 0, mesh, fresh: true });
+    }
+    while (ai.length > m.a.length) scene.remove(ai.pop().mesh);
+    m.a.forEach((a, i) => {
+      const o = ai[i];
+      o.x = a[0]; o.z = a[1]; o.ry = a[2];
+      if (o.fresh) { o.mesh.position.set(o.x, 0, o.z); o.fresh = false; }
+    });
+  }
+
+  // ---------- Lobby ----------
+  function enterLobby() {
+    showScreen('lobby');
+    $('lobbyMsg').textContent = '';
+    renderLobby();
+  }
+
+  function renderLobby() {
+    if (phase !== 'lobby') return;
+    $('roomCode').textContent = net.code;
+    const list = $('plist');
+    list.textContent = '';
+    for (const p of players.values()) {
+      const row = document.createElement('div');
+      row.className = 'prow';
+      const nm = document.createElement('span');
+      nm.textContent = p.name + (p.id === 'host' ? ' (host)' : '') + (p === me ? ' (you)' : '');
+      const b = document.createElement('span');
+      b.className = 'badge ' + p.role;
+      b.textContent = p.role;
+      row.append(nm, b);
+      list.appendChild(row);
+    }
+    const alone = net.isHost && players.size === 1;
+    $('roleRunner').classList.toggle('on', me && me.role === 'runner');
+    $('roleHunter').classList.toggle('on', me && me.role === 'hunter');
+    $('roleRunner').disabled = $('roleHunter').disabled = alone;
+    $('roleHint').textContent = alone ? 'Alone in the room: you play as a runner against AI hunters.' : 'Hunters chase. Runners survive until time runs out. Caught runners become hunters.';
+    $('startBtn').classList.toggle('hidden', !net.isHost);
+    $('startBtn').textContent = alone ? 'Start solo' : 'Start game';
+    $('waitTxt').classList.toggle('hidden', net.isHost);
+  }
+
+  function chooseRole(role) {
+    if (phase !== 'lobby' || !me) return;
+    if (net.isHost) { me.role = role; broadcastLobby(); }
+    else { me.role = role; renderLobby(); sendTo(net.hostConn, { t: 'role', role }); }
+  }
+
+  async function shareInvite() {
+    const url = location.origin + location.pathname + '?room=' + net.code;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'ManHunt', text: 'Join my ManHunt room: ' + net.code, url }); return; }
+    } catch (e) { /* cancelled */ }
+    try { await navigator.clipboard.writeText(url); toast('Invite link copied'); }
+    catch (e) { $('lobbyMsg').textContent = url; }
+  }
+
+  // ---------- Host: start / sim ----------
+  function hostStart() {
+    if (!net.isHost) return;
+    const list = [...players.values()];
+    const is_solo = list.length === 1;
+    if (is_solo) list[0].role = 'runner';
+    const runners = list.filter(p => p.role === 'runner');
+    if (!runners.length) { $('lobbyMsg').textContent = 'Need at least one runner.'; return; }
+    const ai_on = list.filter(p => p.role === 'hunter').length === 0;
+    const roster = list.map(p => {
+      const pos = p.role === 'runner' ? findFree(0, 0, 0, 14) : findFree(0, 0, 45, 60);
+      return { id: p.id, name: p.name, role: p.role, x: pos.x, z: pos.z };
+    });
+    sendAll({ t: 'start', roster, ai: ai_on, solo: is_solo });
+    beginGame(roster, ai_on, is_solo);
+  }
+
+  function spawnAI() {
+    const runners = [...players.values()].filter(p => p.role === 'runner');
+    if (!runners.length) return;
+    const t = runners[(Math.random() * runners.length) | 0];
+    const pos = findFree(t.x, t.z, 70, 110);
+    const mesh = makeFigure(ROLE_COLOR.hunter, null);
+    mesh.position.set(pos.x, 0, pos.z);
+    scene.add(mesh);
+    ai.push({ x: pos.x, z: pos.z, mesh, ang: 0, wander: 0 });
+  }
+
+  function nearestRunner(x, z) {
+    let best = null, bd = Infinity;
+    for (const p of players.values()) {
+      if (p.role !== 'runner') continue;
+      const d = Math.hypot(p.x - x, p.z - z);
+      if (d < bd) { bd = d; best = p; }
+    }
+    return best ? { p: best, d: bd } : null;
+  }
+
+  function updateAI(dt) {
+    const speed = Math.min(6.2, 3.7 + (elapsed - HEAD) * 0.018);
+    for (const h of ai) {
+      const tg = nearestRunner(h.x, h.z);
+      let tx, tz, spd;
+      if (tg && tg.d < 120) {
+        const dx = tg.p.x - h.x, dz = tg.p.z - h.z, dist = tg.d || 0.001;
+        tx = dx / dist; tz = dz / dist; spd = speed;
+      } else {
+        h.wander -= dt;
+        if (h.wander <= 0) { h.ang = Math.random() * Math.PI * 2; h.wander = grnd(2, 4); }
+        tx = Math.cos(h.ang); tz = Math.sin(h.ang); spd = speed * 0.5;
+      }
+      let mvx = null, mvz = null;
+      for (const off of AVOID) {
+        const c = Math.cos(off), s = Math.sin(off);
+        const vx = tx * c - tz * s, vz = tx * s + tz * c;
+        if (!blockedCircle(h.x + vx * 0.9, h.z + vz * 0.9, 0.7)) { mvx = vx; mvz = vz; break; }
+      }
+      if (mvx !== null) {
+        h.x += mvx * spd * dt;
+        h.z += mvz * spd * dt;
+        tx = mvx; tz = mvz;
+      }
+      resolve(h, 0.6);
+      h.ry = Math.atan2(tx, tz);
+      h.mesh.position.set(h.x, 0, h.z);
+      h.mesh.rotation.y = h.ry;
+    }
+  }
+
+  function checkRoundEnd() {
+    if (phase !== 'playing') return;
+    const left = [...players.values()].filter(p => p.role === 'runner').length;
+    if (left === 0) finish('hunters');
+    else if (!solo && elapsed >= ROUND) finish('runners');
+  }
+
+  function hostSim(dt) {
+    const released = elapsed >= HEAD;
+    if (released) {
+      if (aiOn) {
+        if (elapsed - HEAD >= nextSpawn && ai.length < 7) { spawnAI(); nextSpawn += 22; }
+        updateAI(dt);
+      }
+      // Catches
+      const hunters = [];
+      for (const p of players.values()) if (p.role === 'hunter') hunters.push({ x: p.x, z: p.z, r: 1.6 });
+      for (const a of ai) hunters.push({ x: a.x, z: a.z, r: 1.3 });
+      for (const r of [...players.values()]) {
+        if (r.role !== 'runner') continue;
+        if (hunters.some(h => Math.hypot(h.x - r.x, h.z - r.z) < h.r)) {
+          if (solo) { finish('hunters'); return; }
+          setRole(r, 'hunter');
+          const text = r.name + ' was caught!';
+          toast(text); sendAll({ t: 'toast', text });
+        }
+      }
+    }
+    checkRoundEnd();
+    if (phase !== 'playing') return;
+    bcastT -= dt;
+    if (bcastT <= 0) {
+      bcastT = 1 / 15;
+      sendAll({
+        t: 'state', time: r1(elapsed),
+        p: [...players.values()].map(p => [p.id, r1(p.x), r1(p.z), r1(p.ry || 0), p.role]),
+        a: ai.map(a => [r1(a.x), r1(a.z), r1(a.ry || 0)])
+      });
+    }
+  }
+
+  function finish(winner) {
+    if (phase !== 'playing') return;
+    sendAll({ t: 'end', winner, time: r1(elapsed), solo });
+    showOver(winner, elapsed, solo);
+  }
+
+  function showOver(winner, time, is_solo) {
+    phase = 'over';
+    joy.x = joy.y = 0; sprintHeld = false;
+    $('banner').textContent = '';
+    let title, text;
+    if (is_solo) {
+      if (time > bestTime) { bestTime = time; try { localStorage.setItem('manhunt-best', String(bestTime)); } catch (e) {} }
+      title = 'CAUGHT';
+      text = `You survived ${fmt(time)}. Best: ${fmt(bestTime)}.`;
+    } else {
+      const win = me && ((winner === 'runners' && me.role === 'runner') || (winner === 'hunters' && me.role === 'hunter'));
+      title = win ? 'YOU WIN' : 'YOU LOSE';
+      text = winner === 'runners' ? 'The runners survived the full round.' : 'The hunters caught every runner.';
+    }
+    $('overTitle').textContent = title;
+    $('overText').textContent = text;
+    $('againBtn').classList.toggle('hidden', !net.isHost);
+    $('againBtn').textContent = is_solo ? 'Run again' : 'Back to lobby';
+    if (!net.isHost) $('overText').textContent += ' Waiting for the host...';
+    showScreen('over');
+  }
+
+  function againHost() {
+    if (!net.isHost) return;
+    for (const p of players.values()) if (p.pref) p.role = p.pref;
+    if (players.size === 1) { hostStart(); return; }
+    clearGame();
+    phase = 'lobby';
+    broadcastLobby();
+    enterLobby();
+  }
+
+  // ---------- Input ----------
+  const keys = {};
+  addEventListener('keydown', e => {
+    if (phase !== 'playing') return;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    keys[k] = true;
+    if (e.key === ' ') e.preventDefault();
+  });
+  addEventListener('keyup', e => {
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    keys[k] = false;
+  });
+  addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+  let joyId = null, lookId = null, lastX = 0, lastY = 0, joyOX = 0, joyOY = 0, sprintHeld = false;
+  const joy = { x: 0, y: 0 };
+  const joyEl = $('joy'), knob = $('knob'), sprintBtn = $('sprint');
+
+  addEventListener('pointerdown', e => {
+    if (phase !== 'playing' || e.target.closest('#sprint')) return;
+    if (e.pointerType === 'touch' && e.clientX < innerWidth * 0.5 && joyId === null) {
+      joyId = e.pointerId;
+      joyOX = e.clientX; joyOY = e.clientY;
+      joyEl.style.left = joyOX + 'px';
+      joyEl.style.top = joyOY + 'px';
+      joyEl.style.display = 'block';
+    } else if (lookId === null) {
+      lookId = e.pointerId;
+      lastX = e.clientX; lastY = e.clientY;
+    }
+  });
+
+  addEventListener('pointermove', e => {
+    if (e.pointerId === joyId) {
+      const dx = e.clientX - joyOX, dy = e.clientY - joyOY;
+      const len = Math.hypot(dx, dy), R = 50, m = Math.min(len, R);
+      const ux = len ? dx / len : 0, uy = len ? dy / len : 0;
+      joy.x = ux * m / R;
+      joy.y = -uy * m / R;
+      knob.style.transform = `translate(${ux * m}px,${uy * m}px)`;
+    } else if (e.pointerId === lookId) {
+      camYaw -= (e.clientX - lastX) * 0.007;
+      camPitch = clamp(camPitch + (lastY - e.clientY) * 0.005, 0.12, 1.2);
+      lastX = e.clientX; lastY = e.clientY;
+    }
+  });
+
+  const endPtr = e => {
+    if (e.pointerId === joyId) {
+      joyId = null; joy.x = joy.y = 0;
+      joyEl.style.display = 'none';
+      knob.style.transform = '';
+    }
+    if (e.pointerId === lookId) lookId = null;
+  };
+  addEventListener('pointerup', endPtr);
+  addEventListener('pointercancel', endPtr);
+
+  addEventListener('wheel', e => { camDist = clamp(camDist + e.deltaY * 0.01, 5, 16); }, { passive: true });
+
+  sprintBtn.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    sprintHeld = true;
+    sprintBtn.classList.add('on');
+    sprintBtn.setPointerCapture(e.pointerId);
+  });
+  const sprintEnd = () => { sprintHeld = false; sprintBtn.classList.remove('on'); };
+  sprintBtn.addEventListener('pointerup', sprintEnd);
+  sprintBtn.addEventListener('pointercancel', sprintEnd);
+
+  // ---------- Optional real-world GPS mode ----------
+  // Your position is mapped to the city in meters from where you started.
+  // Location is only used on this device and is never sent anywhere except as your in-game position.
+  let gpsOn = false, gpsOK = false, gpsOrigin = null, gpsX = 0, gpsZ = 0, gpsWatch = null;
+  function startGPS() {
+    if (!navigator.geolocation) { $('gpsTag').textContent = 'GPS unavailable'; return; }
+    gpsWatch = navigator.geolocation.watchPosition(p => {
+      const la = p.coords.latitude, lo = p.coords.longitude;
+      if (!gpsOrigin) gpsOrigin = { la, lo, cos: Math.cos(la * Math.PI / 180) };
+      gpsZ = -(la - gpsOrigin.la) * 110540;
+      gpsX = (lo - gpsOrigin.lo) * 111320 * gpsOrigin.cos;
+      gpsOK = true;
+      $('gpsTag').textContent = 'GPS live';
+    }, err => {
+      gpsOK = false;
+      $('gpsTag').textContent = 'GPS: ' + err.message;
+    }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 });
+  }
+
+  // ---------- Per-frame updates ----------
+  function updateMe(dt) {
+    const hunter = me.role === 'hunter';
+    const frozen = hunter && elapsed < HEAD;
+    const useGPS = gpsOn && gpsOK;
+    let sprinting = false;
+
+    if (useGPS) {
+      if (!frozen) {
+        me.x += (gpsX - me.x) * Math.min(1, dt * 5);
+        me.z += (gpsZ - me.z) * Math.min(1, dt * 5);
+      }
+    } else if (!frozen) {
+      let ix = ((keys.d || keys.ArrowRight) ? 1 : 0) - ((keys.a || keys.ArrowLeft) ? 1 : 0) + joy.x;
+      let iz = ((keys.w || keys.ArrowUp) ? 1 : 0) - ((keys.s || keys.ArrowDown) ? 1 : 0) + joy.y;
+      const len = Math.hypot(ix, iz);
+      if (len > 0.05) {
+        const mag = Math.min(1, len);
+        ix /= len; iz /= len;
+        const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw);
+        const rx = Math.cos(camYaw), rz = -Math.sin(camYaw);
+        const mx = rx * ix + fx * iz, mz = rz * ix + fz * iz;
+        const wantSprint = !!(keys.Shift || sprintHeld);
+        sprinting = !hunter && wantSprint && stamina > 3;
+        const v = (hunter ? 6.1 : sprinting ? 8.6 : 5.0) * mag;
+        me.x += mx * v * dt;
+        me.z += mz * v * dt;
+        me.ry = Math.atan2(mx, mz);
+      }
+    }
+
+    if (sprinting) stamina = Math.max(0, stamina - 26 * dt);
+    else stamina = Math.min(100, stamina + 14 * dt);
+
+    me.x = clamp(me.x, -262, 262);
+    me.z = clamp(me.z, -262, 262);
+    resolve(me, 0.6);
+    me.mesh.position.set(me.x, 0, me.z);
+    me.mesh.rotation.y = me.ry;
+  }
+
+  const lerpAng = (a, b, k) => {
+    let d = b - a;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return a + d * k;
+  };
+
+  function smoothOthers(dt) {
+    const k = Math.min(1, dt * 12);
+    for (const p of players.values()) {
+      if (p === me || !p.mesh) continue;
+      p.mesh.position.x += (p.x - p.mesh.position.x) * k;
+      p.mesh.position.z += (p.z - p.mesh.position.z) * k;
+      p.mesh.rotation.y = lerpAng(p.mesh.rotation.y, p.ry || 0, k);
+    }
+    if (!net.isHost) {
+      for (const a of ai) {
+        a.mesh.position.x += (a.x - a.mesh.position.x) * k;
+        a.mesh.position.z += (a.z - a.mesh.position.z) * k;
+        a.mesh.rotation.y = lerpAng(a.mesh.rotation.y, a.ry || 0, k);
+      }
+    }
+  }
+
+  function updateCamera(dt) {
+    if (!me) return;
+    const px = me.x, pz = me.z;
+    const sy = Math.sin(camYaw), cy = Math.cos(camYaw);
+    let hor = camDist * Math.cos(camPitch);
+    for (let s = 1.2; s <= hor; s += 0.4) {
+      if (blockedCircle(px + sy * s, pz + cy * s, 0.35)) { hor = Math.max(1.2, s - 0.4); break; }
+    }
+    const tx = px + sy * hor, tz = pz + cy * hor;
+    const ty = 1.4 + camDist * Math.sin(camPitch);
+    const k = Math.min(1, dt * 12);
+    camera.position.x += (tx - camera.position.x) * k;
+    camera.position.y += (ty - camera.position.y) * k;
+    camera.position.z += (tz - camera.position.z) * k;
+    camera.lookAt(px, 1.3, pz);
+  }
+
+  // ---------- HUD & radar ----------
+  const rc = $('radar').getContext('2d');
+  function drawRadar() {
+    const W = 240, R = W / 2;
+    rc.clearRect(0, 0, W, W);
+    rc.strokeStyle = 'rgba(255,255,255,.12)';
+    rc.beginPath(); rc.arc(R, R, R - 2, 0, Math.PI * 2); rc.stroke();
+    if (phase !== 'playing' || !me) return;
+    const range = me.role === 'hunter' ? 70 : 120, k = (R - 10) / range;
+    const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw);
+    const rx = Math.cos(camYaw), rz = -Math.sin(camYaw);
+    const dot = (x, z, col) => {
+      const dx = x - me.x, dz = z - me.z;
+      const f = dx * fx + dz * fz, r = dx * rx + dz * rz;
+      if (Math.hypot(f, r) > range) return;
+      rc.fillStyle = col;
+      rc.beginPath(); rc.arc(R + r * k, R - f * k, 5, 0, Math.PI * 2); rc.fill();
+    };
+    for (const a of ai) dot(a.x, a.z, '#ff4d5e');
+    for (const p of players.values()) {
+      if (p === me) continue;
+      dot(p.x, p.z, p.role === 'hunter' ? '#ff4d5e' : '#4fd1ff');
+    }
+    rc.fillStyle = me.role === 'hunter' ? '#ff4d5e' : '#4fd1ff';
+    rc.beginPath();
+    rc.moveTo(R, R - 9); rc.lineTo(R - 6, R + 6); rc.lineTo(R + 6, R + 6);
+    rc.closePath(); rc.fill();
+  }
+
+  function updateHud() {
+    if (phase !== 'playing' || !me) { drawRadar(); return; }
+    $('timer').textContent = solo ? fmt(elapsed) : fmt(ROUND - elapsed);
+    $('stam').style.width = (me.role === 'hunter' ? 100 : stamina) + '%';
+    $('roleTxt').textContent = me.role.toUpperCase();
+    $('roleTxt').className = me.role;
+    if (solo) $('countTxt').textContent = 'Best: ' + fmt(bestTime);
+    else $('countTxt').textContent = 'Runners left: ' + [...players.values()].filter(p => p.role === 'runner').length;
+
+    if (elapsed < HEAD) {
+      const n = Math.ceil(HEAD - elapsed);
+      $('banner').textContent = me.role === 'hunter' ? `Hunt starts in ${n}` : `Run! Hunters released in ${n}`;
+    } else $('banner').textContent = '';
+
+    let danger = 0;
+    if (me.role === 'runner' && elapsed >= HEAD) {
+      let md = 99;
+      for (const a of ai) md = Math.min(md, Math.hypot(a.x - me.x, a.z - me.z));
+      for (const p of players.values()) if (p.role === 'hunter') md = Math.min(md, Math.hypot(p.x - me.x, p.z - me.z));
+      danger = clamp(1 - (md - 8) / 22, 0, 1);
+    }
+    $('danger').style.boxShadow = `inset 0 0 140px rgba(255,30,60,${(danger * 0.7).toFixed(3)})`;
+    drawRadar();
+  }
+
+  // ---------- UI wiring ----------
+  $('createBtn').addEventListener('click', () => createRoom(0));
+  $('joinBtn').addEventListener('click', () => joinRoom($('codeIn').value));
+  $('codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom($('codeIn').value); });
+  $('codeIn').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+  $('roleRunner').addEventListener('click', () => chooseRole('runner'));
+  $('roleHunter').addEventListener('click', () => chooseRole('hunter'));
+  $('startBtn').addEventListener('click', hostStart);
+  $('shareBtn').addEventListener('click', shareInvite);
+  $('leaveBtn').addEventListener('click', () => leaveRoom(''));
+  $('leaveBtn2').addEventListener('click', () => leaveRoom(''));
+  $('againBtn').addEventListener('click', againHost);
+
+  try { const n = localStorage.getItem('manhunt-name'); if (n) $('nameIn').value = n; } catch (e) {}
+  const roomParam = new URLSearchParams(location.search).get('room');
+  if (roomParam) $('codeIn').value = roomParam.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+
+  sprintBtn.style.display = isTouch ? 'block' : 'none';
+  $('keyHint').style.display = isTouch ? 'none' : 'block';
+  $('roomCode').textContent = '-----';
+
+  // ---------- Loop ----------
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    if (phase === 'playing' && me) {
+      elapsed += dt;
+      updateMe(dt);
+      if (net.isHost) hostSim(dt);
+      else {
+        sendT -= dt;
+        if (sendT <= 0) {
+          sendT = 1 / 15;
+          sendTo(net.hostConn, { t: 'pos', x: r1(me.x), z: r1(me.z), ry: r1(me.ry || 0) });
+        }
+      }
+      if (phase === 'playing') smoothOthers(dt);
+    } else if (phase === 'over') {
+      smoothOthers(dt);
+    }
+
+    const cx = me ? me.x : 0, cz = me ? me.z : 0;
+    sun.position.set(cx + 110, 220, cz + 70);
+    sun.target.position.set(cx, 0, cz);
+    sun.target.updateMatrixWorld();
+
+    if (phase === 'playing' || phase === 'over') updateCamera(dt);
+    else {
+      // Slow orbit over the city behind the menus
+      const t = now / 1000 * 0.05;
+      camera.position.set(Math.cos(t) * 150, 70, Math.sin(t) * 150);
+      camera.lookAt(0, 10, 0);
+    }
+    updateHud();
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // Test hook (harmless in production)
+  window.__mh = { get phase() { return phase; }, get code() { return net.code; }, get players() { return [...players.values()].map(p => ({ id: p.id, name: p.name, role: p.role, x: p.x, z: p.z })); }, get ai() { return ai.length; }, get elapsed() { return elapsed; } };
+})();
+</script>
+</body>
+</html>
